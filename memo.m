@@ -34,4 +34,10 @@ for in=1:300
   plot(240-tx(32:36,in), 120-ty(32:36,in),'ro');pause(0.4);
 end
 
-
+obj=VideoReader('e:/1109/video_20171109_144525.mp4')
+outV=videoWriter('e:/1109/liu.avi')
+open(outV)
+for k=1:819
+  img=read(obj,k);img=imrotate(img,90);
+  writeVideo(outV,img);
+end
