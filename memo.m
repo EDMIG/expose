@@ -8,6 +8,7 @@ for in=1:300
   save(fn,'txy','-ascii');
 end
 
+
 obj1=VideoReader('e:/1109/1.avi');
 obj2=VideoReader('e:/1109/2.avi');
 obj3=VideoReader('e:/1109/3.avi');
@@ -25,6 +26,8 @@ for k=1:300
   img=[img1 img2 img3];
   writeVideo(outV,img);
 end
+
+close(outV);
 
 figure,hold;
 for in=1:300
