@@ -29,10 +29,19 @@ end
 
 close(outV);
 
+
 figure,hold;
 for in=1:300
   plot(240-tx(32:36,in), 120-ty(32:36,in),'ro');pause(0.4);
 end
+
+tx0=mean(tx,2);
+ty0=mean(ty,2);
+
+plot(240-tx0,120-ty0,'bo');
+
+
+
 
 obj=VideoReader('e:/1109/video_20171109_144525.mp4')
 outV=videoWriter('e:/1109/liu.avi')
