@@ -29,4 +29,9 @@ Leverage Hypothesis 杠杆假说 ; 财务杠杆假说 ; 杠杆作用假说
 moderate leverage 温和的杠杆 ; 温和杠杆 ; 适度的杠杆
 tax leverage 税收杠杆
 
- 
+The revolutionary NVIDIA Pascal™ architecture is purpose-built to be the engine of computers
+that learn, see, and simulate our world—a world with an infinite appetite for computing.
+
+Learn more about NVIDA's latest GPU architecture and
+how its five technological breakthroughs enable a new computing platform
+that’s disrupting conventional thinking, from the desk-side to the data center.
