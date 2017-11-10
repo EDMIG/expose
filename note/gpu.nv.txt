@@ -1,0 +1,11 @@
+
+3.X kepler
+5.x Maxwell
+6.0 Pascal
+7.0 Volta
+
+cubin： 二进制
+PTX: 汇编
+
+就是SASS指令集。NVASM和cuobjdump上有一些，但感觉不全。NV没有公布过assembler。
+Fermi上可以去看开源的asfermi，里面讲了一些。Maxwell可以去查maxas，其他的应该没了。
