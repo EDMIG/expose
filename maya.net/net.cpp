@@ -483,6 +483,64 @@ double *feature_norm(double vmean, const double fea_mean[NNET_INPUT_NUM],
 void test_tracker_data()
 {
 
+  double feature[178];
+  double PointsXY[68][2];
+
+  FeaAux aux;
+
+  int frames=0;
+  while(1)
+  {
+    frames++;
+    if(frames==5)
+    {
+      aux.setXmean(feature);break;
+    }
+  }
+
+  //此处初始化可能有BUG
+  double ws[NNET_NUM]={0}；
+  double ws50[50]={0};
+  static const int maps[]=
+  {
+    1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,
+    0,0,0,0,0,0,
+    23,
+    0,0,
+    26,27,28,29,30,31,32,33,
+    0,0,
+    36,37,
+    0,0,
+    40,41,42,43,
+    0,0,0,0,0,0,0,
+  }
+
+  fseek(fp,0,0);
+  frames=0;
+  while(1)
+  {
+    aux.addx(feature);
+    double vmean=aux.vmean;
+    double *xmean=aux.xmean;
+    double *x=feature;
+
+    double *w=ws;
+    for(int i=0; i<50; i++)
+    {
+        ws50[i]=0;
+        if(maps[i]>0)
+        {
+          assert(maps[i]==i+1);
+          ws50[i]=*w++;
+          ws50[i]/=100;
+          if(ws50[i]<0) ws50[i]=0;
+          if(ws50[i]>1) ws50[i]=1;
+        }
+    }
+    assert(w==ws+31);
+  }
+
+
 }
 
 int _tmain(int argc, _TCHAR* argv[])
