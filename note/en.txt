@@ -35,3 +35,5 @@ that learn, see, and simulate our world—a world with an infinite appetite for 
 Learn more about NVIDA's latest GPU architecture and
 how its five technological breakthroughs enable a new computing platform
 that’s disrupting conventional thinking, from the desk-side to the data center.
+
+indie
