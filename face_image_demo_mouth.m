@@ -6,7 +6,7 @@ clmParams_mouth.multi_modal_types=patches_mouth(1).multi_modal_types;
 mouth_inds=[49:68];
 
 %上嘴唇index
-up_inds=[49:53 61 62 62]+1-48;
+up_inds=[49:53 61 62 63]+1-48;
 
 %下嘴唇index
 lo_inds=[55:59 65 66 67]+1-48;
