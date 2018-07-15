@@ -31,8 +31,15 @@ all:	test_qd
 
 test_qd: test_qd.o
 test_qd: objects += test_qd.o
-test_qd:$(objects)
+test_qd: $(objects)
 	$(CXX)  $(LDFLAGS) $(objects)  -o $@
+
+test_spectra_qd: CXX=mpicxx
+test_spectra_qd: test_spectra_qd.o
+test_spectra_qd: objects += test_spectra_qd.o
+test_spectra_qd:$(objects)
+		$(CXX)  $(LDFLAGS) $(objects)  -o $@
+
 
 test_spectra:CXX=mpicxx
 test_spectra:test_spectra.o

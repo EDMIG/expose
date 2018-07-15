@@ -249,10 +249,9 @@ void test_eigen_1()
 	y(1, 0) = cos(dd_real(4.1));
 	y(1, 1) = cos(dd_real(5.1));
 
-	//��������:
+
 	auto z = x*y;
 
-	//SVD�ɹ�
 	JacobiSVD<Matrix<dd_real,2,2> > svd(z, ComputeFullU|ComputeFullV);
 
 	auto &U = svd.singularValues();

@@ -63,7 +63,7 @@ int test_SymEigsSolver()
     eigs(&op,6,50);
 
     eigs.init();
-#if 1
+
     int nconv=eigs.compute(100);
 
     using namespace std;
@@ -77,7 +77,6 @@ int test_SymEigsSolver()
       }
       cout<<"nconv="<<nconv<<endl;
     }
-#endif
 
     MPI::Finalize();
 
