@@ -13,6 +13,7 @@
 #include "../LinAlg/UpperHessenbergQR.h"
 #include "../LinAlg/TridiagEigen.h"
 
+#include "Util/numTraits.h"
 
 namespace Spectra {
 
@@ -20,7 +21,7 @@ namespace Spectra {
 template < typename Scalar,
            int SelectionRule,
            typename OpType>
-class SymEigsSolver
+class MPI_SymEigsSolver
 {
 private:
     typedef Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> Matrix;
@@ -29,6 +30,12 @@ private:
     typedef Eigen::Array<bool, Eigen::Dynamic, 1> BoolArray;
     typedef Eigen::Map<Matrix> MapMat;
     typedef Eigen::Map<Vector> MapVec;
+	
+	typedef typename numTraits<Scalar>::RealType Real;
+    typedef std::complex<Real> Complex;
+	typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic> ComplexMatrix;
+    typedef Eigen::Matrix<Complex, Eigen::Dynamic, 1> ComplexVector;
+
 
 protected:
     OpType*      m_op;         // object to conduct matrix operation,
@@ -36,7 +43,7 @@ protected:
     const int    m_n;          // dimension of matrix A
     const int    m_nev;        // number of eigenvalues requested
     const int    m_ncv;        // dimension of Krylov subspace in the Lanczos method
-    int          m_nmatop;     // number of matrix operations called
+    int          m_nmatop;     // number of matrix operations CALLed
     int          m_niter;      // number of restarting iterations
 
     Matrix       m_fac_V;      // V matrix in the Lanczos factorization
@@ -46,7 +53,7 @@ protected:
 
 private:
     Matrix       m_ritz_vec;   // Ritz vectors
-    Vector       m_ritz_est;   // last row of m_ritz_vec, also called the Ritz estimates
+    Vector       m_ritz_est;   // last row of m_ritz_vec, also CALLed the Ritz estimates
     BoolArray    m_ritz_conv;  // indicator of the convergence of Ritz values
     int          m_info;       // status of the computation
 
@@ -71,12 +78,12 @@ private:
 			int cols=V.cols();
 			for(int idx=0; idx<cols; idx++)
 			{
-				//MPI
+				//CALL MPI
 				Scalar a=m_op->pdot(V.col(idx),f);
 				f-=a*V.col(idx);
 			}
             // fnorm <- ||f||
-			//MPI
+			//CALL MPI
             fnorm = m_op->pnorm2(m_fac_f);
 	
             // If fnorm is too close to zero, we try a new random vector,
@@ -103,7 +110,7 @@ private:
 		//MPI
 		Scalar beta = m_op->pnorm2(m_fac_f);
 		
-		Hii = Scalar(0);
+		Scalar Hii = Scalar(0);
         // Keep the upperleft k x k submatrix of H and set other elements to 0
         m_fac_H.rightCols(m_ncv - from_k).setZero();
         m_fac_H.block(from_k, 0, m_ncv - from_k, from_k).setZero();
@@ -112,7 +119,7 @@ private:
             bool restart = false;
             // If beta = 0, then the next V is not full rank
             // We need to generate a new residual vector that is orthogonal
-            // to the current V, which we call a restart
+            // to the current V, which we CALL a restart
             if(beta < m_near_0)
             {
                 MapMat V(m_fac_V.data(), m_n, i); // The first i columns
@@ -131,7 +138,7 @@ private:
             m_op->perform_op(v.data(), w.data());
             m_nmatop++;
 
-            //MPI
+            //CALL MPI
 			Hii = m_op->pdot(v, w);
 			
             m_fac_H(i - 1, i) = m_fac_H(i, i - 1); // Due to symmetry
@@ -144,16 +151,20 @@ private:
             else
                 m_fac_f.noalias() = w - m_fac_H(i, i - 1) * m_fac_V.col(i - 1) - Hii * v;
 
-            beta = norm(m_fac_f);
+			//CALL MPI
+            beta = m_op->pnorm2(m_fac_f);
 
             // f/||f|| is going to be the next column of V, so we need to test
             // whether V' * (f/||f||) ~= 0
             const int i1 = i + 1;
             MapMat V(m_fac_V.data(), m_n, i1); // The first (i+1) columns
             
-			//MPI
-			Vf.head(i1).noalias() = m_op->pdot(V, m_fac_f);
-            
+			for(int idx=0; idx<i1;idx++)
+			{
+				//CALL MPI
+				Vf(idx)= m_op->pdot(V.col(idx), m_fac_f);
+			}
+			
 			Scalar ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
             // If not, iteratively correct the residual
             int count = 0;
@@ -179,14 +190,14 @@ private:
                 m_fac_H(i, i) += Vf[i];
                 // beta <- ||f||
 				
-				//MPI
+				//CALL MPI
                 beta = m_op->pnorm2(m_fac_f);
 
                 
 				for(int idx=0; idx<V.cols(); idx++)
 				{
-					//MPI
-					Vf(idx) =m_op->pdot(V, m_fac_f);	
+					//CALL MPI
+					Vf(idx) =m_op->pdot(V.col(idx), m_fac_f);	
 				}
                 ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
                 count++;
@@ -386,12 +397,12 @@ public:
     /// \param nev  Number of eigenvalues requested. This should satisfy \f$1\le nev \le n-1\f$,
     ///             where \f$n\f$ is the size of matrix.
     /// \param ncv  Parameter that controls the convergence speed of the algorithm.
-    ///             Typically a larger `ncv` means faster convergence, but it may
+    ///             TypiCALLy a larger `ncv` means faster convergence, but it may
     ///             also result in greater memory use and more matrix operations
     ///             in each iteration. This parameter must satisfy \f$nev < ncv \le n\f$,
     ///             and is advised to take \f$ncv \ge 2\cdot nev\f$.
     ///
-    SymEigsSolver(OpType* op, int nev, int ncv) :
+    MPI_SymEigsSolver(OpType* op, int nev, int ncv) :
         m_op(op),
         m_n(m_op->rows()),
         m_nev(nev),
@@ -413,7 +424,7 @@ public:
     ///
     /// Virtual destructor
     ///
-    virtual ~SymEigsSolver() {}
+    virtual ~MPI_SymEigsSolver() {}
 
     ///
     /// Initializes the solver by providing an initial residual vector.
@@ -450,7 +461,7 @@ public:
         Vector v(m_n);
         std::copy(init_resid, init_resid + m_n, v.data());
 		
-		//MPI
+		//CALL MPI
         const Scalar vnorm = m_op->pnorm2(v);
         if(vnorm < m_near_0)
             throw std::invalid_argument("initial residual vector cannot be zero");
@@ -460,7 +471,7 @@ public:
         m_op->perform_op(v.data(), w.data());
         m_nmatop++;
 
-		//MPI
+		//CALL MPI
         m_fac_H(0, 0) = m_op->pdot(v, w);
 		
         m_fac_f.noalias() = w - v * m_fac_H(0, 0);
@@ -468,7 +479,7 @@ public:
 
         // In some cases f is zero in exact arithmetics, but due to rounding errors
         // it may contain tiny fluctuations. When this happens, we force f to be zero.
-        //MPI
+        //CALL MPI
 		if(m_op->pabsmax(m_fac_f) < m_eps)
             m_fac_f.setZero();
     }
@@ -509,6 +520,7 @@ public:
     {
         // The m-step Arnoldi factorization
         factorize_from(1, m_ncv, m_fac_f);
+		
         retrieve_ritzpair();
         // Restarting
         int i, nconv = 0, nev_adj;
