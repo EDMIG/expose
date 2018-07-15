@@ -240,7 +240,8 @@ public:
 		
 		Real sum;
 		m_comm.Allreduce(&myNorm, &sum, 1, numTraits<Real>::Datatype, numTraits<Real>::MPI_OP_SUM);
-		return maxNorm*std::sqrt(std::abs(sum));
+		//return maxNorm*std::sqrt(std::abs(sum));
+		return maxNorm*sqrt(abs(sum));
 	}
 	
 	Real pabsmax(const Vector &vec_x) const
