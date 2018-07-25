@@ -30,16 +30,16 @@ private:
     typedef Eigen::Array<bool, Eigen::Dynamic, 1> BoolArray;
     typedef Eigen::Map<Matrix> MapMat;
     typedef Eigen::Map<Vector> MapVec;
-	
-	typedef typename numTraits<Scalar>::RealType Real;
+
+    typedef typename numTraits<Scalar>::RealType Real;
     typedef std::complex<Real> Complex;
-	typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic> ComplexMatrix;
+    typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic> ComplexMatrix;
     typedef Eigen::Matrix<Complex, Eigen::Dynamic, 1> ComplexVector;
 
 
 protected:
     OpType*      m_op;         // object to conduct matrix operation,
-                               // e.g. matrix-vector product
+    // e.g. matrix-vector product
     const int    m_n;          // dimension of matrix A
     const int    m_nev;        // number of eigenvalues requested
     const int    m_ncv;        // dimension of Krylov subspace in the Lanczos method
@@ -58,7 +58,7 @@ private:
     int          m_info;       // status of the computation
 
     const Scalar m_near_0;     // a very small value, but 1.0 / m_near_0 does not overflow
-                               // ~= 1e-307 for the "double" type
+    // ~= 1e-307 for the "double" type
     const Scalar m_eps;        // the machine precision, ~= 1e-16 for the "double" type
     const Scalar m_eps23;      // m_eps^(2/3), used to test the convergence
 
@@ -75,17 +75,17 @@ private:
             SimpleRandom<Scalar> rng(seed + 123 * (iter+m_op->rank()));
             f.noalias() = rng.random_vec(m_n);
             // f <- f - V * V' * f, so that f is orthogonal to V
-			int cols=V.cols();
-			for(int idx=0; idx<cols; idx++)
-			{
-				//CALL MPI
-				Scalar a=m_op->pdot(V.col(idx),f);
-				f-=a*V.col(idx);
-			}
+            int cols=V.cols();
+            for(int idx=0; idx<cols; idx++)
+            {
+                //CALL MPI
+                Scalar a=m_op->pdot(V.col(idx),f);
+                f-=a*V.col(idx);
+            }
             // fnorm <- ||f||
-			//CALL MPI
+            //CALL MPI
             fnorm = m_op->pnorm2(m_fac_f);
-	
+
             // If fnorm is too close to zero, we try a new random vector,
             // otherwise return the result
             if(fnorm >= thresh)
@@ -106,11 +106,11 @@ private:
         // Pre-allocate Vf
         Vector Vf(to_m);
         Vector w(m_n);
-        
-		//MPI
-		Scalar beta = m_op->pnorm2(m_fac_f);
-		
-		Scalar Hii = Scalar(0);
+
+        //MPI
+        Scalar beta = m_op->pnorm2(m_fac_f);
+
+        Scalar Hii = Scalar(0);
         // Keep the upperleft k x k submatrix of H and set other elements to 0
         m_fac_H.rightCols(m_ncv - from_k).setZero();
         m_fac_H.block(from_k, 0, m_ncv - from_k, from_k).setZero();
@@ -139,8 +139,8 @@ private:
             m_nmatop++;
 
             //CALL MPI
-			Hii = m_op->pdot(v, w);
-			
+            Hii = m_op->pdot(v, w);
+
             m_fac_H(i - 1, i) = m_fac_H(i, i - 1); // Due to symmetry
             m_fac_H(i, i) = Hii;
 
@@ -151,21 +151,21 @@ private:
             else
                 m_fac_f.noalias() = w - m_fac_H(i, i - 1) * m_fac_V.col(i - 1) - Hii * v;
 
-			//CALL MPI
+            //CALL MPI
             beta = m_op->pnorm2(m_fac_f);
 
             // f/||f|| is going to be the next column of V, so we need to test
             // whether V' * (f/||f||) ~= 0
             const int i1 = i + 1;
             MapMat V(m_fac_V.data(), m_n, i1); // The first (i+1) columns
-            
-			for(int idx=0; idx<i1;idx++)
-			{
-				//CALL MPI
-				Vf(idx)= m_op->pdot(V.col(idx), m_fac_f);
-			}
-			
-			Scalar ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
+
+            for(int idx=0; idx<i1; idx++)
+            {
+                //CALL MPI
+                Vf(idx)= m_op->pdot(V.col(idx), m_fac_f);
+            }
+
+            Scalar ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
             // If not, iteratively correct the residual
             int count = 0;
             while(count < 5 && ortho_err > m_eps * beta)
@@ -189,16 +189,16 @@ private:
                 m_fac_H(i, i - 1) = m_fac_H(i - 1, i);
                 m_fac_H(i, i) += Vf[i];
                 // beta <- ||f||
-				
-				//CALL MPI
+
+                //CALL MPI
                 beta = m_op->pnorm2(m_fac_f);
 
-                
-				for(int idx=0; idx<V.cols(); idx++)
-				{
-					//CALL MPI
-					Vf(idx) =m_op->pdot(V.col(idx), m_fac_f);	
-				}
+
+                for(int idx=0; idx<V.cols(); idx++)
+                {
+                    //CALL MPI
+                    Vf(idx) =m_op->pdot(V.col(idx), m_fac_f);
+                }
                 ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
                 count++;
             }
@@ -327,12 +327,20 @@ private:
 protected:
     // In generalized eigenvalue problem Ax=lambda*Bx, define the inner product to be <x, y> = x'By
     // For regular eigenvalue problems, it is the usual inner product <x, y> = x'y
-    virtual Scalar inner_product(const Vector& x, const Vector& y) { return x.dot(y); }
-    virtual Scalar inner_product(const MapVec& x, const Vector& y) { return x.dot(y); }
-    virtual Vector inner_product(const MapMat& x, const Vector& y) { return x.transpose() * y; }
+    virtual Scalar inner_product(const Vector& x, const Vector& y) {
+        return x.dot(y);
+    }
+    virtual Scalar inner_product(const MapVec& x, const Vector& y) {
+        return x.dot(y);
+    }
+    virtual Vector inner_product(const MapMat& x, const Vector& y) {
+        return x.transpose() * y;
+    }
 
     // B-norm of a vector. For regular eigenvalue problems it is simply the L2 norm
-    virtual Scalar norm(const Vector& x) { return x.norm(); }
+    virtual Scalar norm(const Vector& x) {
+        return x.norm();
+    }
 
     // Sorts the first nev Ritz pairs in the specified order
     // This is used to return the final results
@@ -344,28 +352,28 @@ protected:
 
         switch(sort_rule)
         {
-            case LARGEST_ALGE:
-                break;
-            case LARGEST_MAGN:
-            {
-                SortEigenvalue<Scalar, LARGEST_MAGN> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            case SMALLEST_ALGE:
-            {
-                SortEigenvalue<Scalar, SMALLEST_ALGE> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            case SMALLEST_MAGN:
-            {
-                SortEigenvalue<Scalar, SMALLEST_MAGN> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            default:
-                throw std::invalid_argument("unsupported sorting rule");
+        case LARGEST_ALGE:
+            break;
+        case LARGEST_MAGN:
+        {
+            SortEigenvalue<Scalar, LARGEST_MAGN> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        case SMALLEST_ALGE:
+        {
+            SortEigenvalue<Scalar, SMALLEST_ALGE> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        case SMALLEST_MAGN:
+        {
+            SortEigenvalue<Scalar, SMALLEST_MAGN> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        default:
+            throw std::invalid_argument("unsupported sorting rule");
         }
 
         Vector new_ritz_val(m_ncv);
@@ -460,8 +468,8 @@ public:
         // Set the initial vector
         Vector v(m_n);
         std::copy(init_resid, init_resid + m_n, v.data());
-		
-		//CALL MPI
+
+        //CALL MPI
         const Scalar vnorm = m_op->pnorm2(v);
         if(vnorm < m_near_0)
             throw std::invalid_argument("initial residual vector cannot be zero");
@@ -471,16 +479,16 @@ public:
         m_op->perform_op(v.data(), w.data());
         m_nmatop++;
 
-		//CALL MPI
+        //CALL MPI
         m_fac_H(0, 0) = m_op->pdot(v, w);
-		
+
         m_fac_f.noalias() = w - v * m_fac_H(0, 0);
         m_fac_V.col(0).noalias() = v;
 
         // In some cases f is zero in exact arithmetics, but due to rounding errors
         // it may contain tiny fluctuations. When this happens, we force f to be zero.
         //CALL MPI
-		if(m_op->pabsmax(m_fac_f) < m_eps)
+        if(m_op->pabsmax(m_fac_f) < m_eps)
             m_fac_f.setZero();
     }
 
@@ -520,7 +528,7 @@ public:
     {
         // The m-step Arnoldi factorization
         factorize_from(1, m_ncv, m_fac_f);
-		
+
         retrieve_ritzpair();
         // Restarting
         int i, nconv = 0, nev_adj;
@@ -546,17 +554,23 @@ public:
     /// Returns the status of the computation.
     /// The full list of enumeration values can be found in \ref Enumerations.
     ///
-    int info() const { return m_info; }
+    int info() const {
+        return m_info;
+    }
 
     ///
     /// Returns the number of iterations used in the computation.
     ///
-    int num_iterations() const { return m_niter; }
+    int num_iterations() const {
+        return m_niter;
+    }
 
     ///
     /// Returns the number of matrix operations used in the computation.
     ///
-    int num_operations() const { return m_nmatop; }
+    int num_operations() const {
+        return m_nmatop;
+    }
 
     ///
     /// Returns the converged eigenvalues.

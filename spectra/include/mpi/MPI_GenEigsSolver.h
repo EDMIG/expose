@@ -20,7 +20,7 @@
 namespace Spectra {
 
 
-template < typename Scalar ,
+template < typename Scalar,
            int SelectionRule,
            typename OpType >
 class MPI_GenEigsSolver
@@ -32,17 +32,17 @@ private:
     typedef Eigen::Array<bool, Eigen::Dynamic, 1> BoolArray;
     typedef Eigen::Map<Matrix> MapMat;
     typedef Eigen::Map<Vector> MapVec;
-	
-	typedef typename numTraits<Scalar>::RealType Real;
+
+    typedef typename numTraits<Scalar>::RealType Real;
     typedef std::complex<Real> Complex;
     typedef Eigen::Matrix<Complex, Eigen::Dynamic, Eigen::Dynamic> ComplexMatrix;
     typedef Eigen::Matrix<Complex, Eigen::Dynamic, 1> ComplexVector;
 
 protected:
     OpType*       m_op;        // object to conduct matrix operation,
-                               // e.g. matrix-vector product
+    // e.g. matrix-vector product
     const int     m_n;         // dimension of matrix A
-	
+
     const int     m_nev;       // number of eigenvalues requested
     const int     m_ncv;       // dimension of Krylov subspace in the Arnoldi method
     int           m_nmatop;    // number of matrix operations called
@@ -61,7 +61,7 @@ private:
     int           m_info;      // status of the computation
 
     const Scalar  m_near_0;    // a very small value, but 1.0 / m_near_0 does not overflow
-                               // ~= 1e-307 for the "double" type
+    // ~= 1e-307 for the "double" type
     const Scalar  m_eps;       // the machine precision, ~= 1e-16 for the "double" type
     const Scalar  m_eps23;     // m_eps^(2/3), used to test the convergence
 
@@ -77,22 +77,22 @@ private:
             // Randomly generate a new vector and orthogonalize it against V
             SimpleRandom<Scalar> rng(seed + 123 * (iter+m_op->rank()));
             f.noalias() = rng.random_vec(m_n);
-			
+
             // f <- f - V * V' * f, so that f is orthogonal to V
             //Vector Vf = V.transpose() * f;
             //f -= V * Vf;
-			for(int idx=0; idx<V.cols(); idx++)
-			{
-				//call MPI
-				Scalar a=m_op->pdot(V.col(idx),f);
-				f-=a*V.col(idx);
-			}
-			
+            for(int idx=0; idx<V.cols(); idx++)
+            {
+                //call MPI
+                Scalar a=m_op->pdot(V.col(idx),f);
+                f-=a*V.col(idx);
+            }
+
             // fnorm <- ||f||
             //fnorm = m_fac_f.norm();
-			//call MPI
-			fnorm=m_op->pnorm2(m_fac_f);
-			
+            //call MPI
+            fnorm=m_op->pnorm2(m_fac_f);
+
             // If fnorm is too close to zero, we try a new random vector,
             // otherwise return the result
             if(fnorm >= thresh)
@@ -113,10 +113,10 @@ private:
         // Pre-allocate Vf
         Vector Vf(to_m);
         Vector w(m_n);
-		
-		//call MPI
-		Scalar beta = m_op->pnorm2(m_fac_f);
-		
+
+        //call MPI
+        Scalar beta = m_op->pnorm2(m_fac_f);
+
         // Keep the upperleft k x k submatrix of H and set other elements to 0
         m_fac_H.rightCols(m_ncv - from_k).setZero();
         m_fac_H.block(from_k, 0, m_ncv - from_k, from_k).setZero();
@@ -140,8 +140,8 @@ private:
             m_fac_H(i, i - 1) = restart ? Scalar(0) : beta;
 
             // w <- A * v, v = m_fac_V.col(i)
-			m_op->perform_op(&m_fac_V(0, i), w.data());
-			
+            m_op->perform_op(&m_fac_V(0, i), w.data());
+
             m_nmatop++;
 
             const int i1 = i + 1;
@@ -150,18 +150,18 @@ private:
             // h = m_fac_H(0:i, i)
             MapVec h(&m_fac_H(0, i), i1);
 
-			
-			
-			m_fac_f.noalias()=w;
-			for(int idx=0; idx<Vs.cols(); idx++)
-			{
-				//MPI
-				Scalar a=m_op->pdot(Vs.col(idx),w);
-				h(idx)=a;
-				m_fac_f.noalias()-=a*Vs.col(idx);
-			}
-			
-			//call MPI
+
+
+            m_fac_f.noalias()=w;
+            for(int idx=0; idx<Vs.cols(); idx++)
+            {
+                //MPI
+                Scalar a=m_op->pdot(Vs.col(idx),w);
+                h(idx)=a;
+                m_fac_f.noalias()-=a*Vs.col(idx);
+            }
+
+            //call MPI
             beta = m_op->pnorm2(m_fac_f);
 
             if(beta > Scalar(0.717) * h.norm())
@@ -169,11 +169,11 @@ private:
 
             // f/||f|| is going to be the next column of V, so we need to test
             // whether V' * (f/||f||) ~= 0
-			for(int idx=0; idx<Vs.cols(); idx++)
-			{
-				//call MPI
-				Vf(idx)=m_op->pdot(Vs.col(idx),m_fac_f);
-			}
+            for(int idx=0; idx<Vs.cols(); idx++)
+            {
+                //call MPI
+                Vf(idx)=m_op->pdot(Vs.col(idx),m_fac_f);
+            }
             Scalar ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
             // If not, iteratively correct the residual
             int count = 0;
@@ -196,17 +196,17 @@ private:
                 // h <- h + Vf
                 h.noalias() += Vf.head(i1);
                 // beta <- ||f||
-				
-				//call MPI
-				beta=m_op->pnorm2(m_fac_f);
+
+                //call MPI
+                beta=m_op->pnorm2(m_fac_f);
 
 
-				for(int idx=0; idx<Vs.cols(); idx++)
-				{
-					//call MPI
-					Vf(idx)=m_op->pdot(Vs.col(idx),m_fac_f);
-				}
-				ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
+                for(int idx=0; idx<Vs.cols(); idx++)
+                {
+                    //call MPI
+                    Vf(idx)=m_op->pdot(Vs.col(idx),m_fac_f);
+                }
+                ortho_err = Vf.head(i1).cwiseAbs().maxCoeff();
                 count++;
             }
         }
@@ -215,8 +215,12 @@ private:
     // Real Ritz values calculated from UpperHessenbergEigen have exact zero imaginary part
     // Complex Ritz values have exact conjugate pairs
     // So we use exact tests here
-    static bool is_complex(const Complex& v) { return v.imag() != Scalar(0); }
-    static bool is_conj(const Complex& v1, const Complex& v2) { return v1 == Eigen::numext::conj(v2); }
+    static bool is_complex(const Complex& v) {
+        return v.imag() != Scalar(0);
+    }
+    static bool is_conj(const Complex& v1, const Complex& v2) {
+        return v1 == Eigen::numext::conj(v2);
+    }
 
     // Implicitly restarted Arnoldi factorization
     void restart(int k)
@@ -318,7 +322,7 @@ private:
         // Increase nev by one if ritz_val[nev - 1] and
         // ritz_val[nev] are conjugate pairs
         if(is_complex(m_ritz_val[nev_new - 1]) &&
-           is_conj(m_ritz_val[nev_new - 1], m_ritz_val[nev_new]))
+                is_conj(m_ritz_val[nev_new - 1], m_ritz_val[nev_new]))
         {
             nev_new++;
         }
@@ -359,40 +363,40 @@ protected:
 
         switch(sort_rule)
         {
-            case LARGEST_MAGN:
-                break;
-            case LARGEST_REAL:
-            {
-                SortEigenvalue<Complex, LARGEST_REAL> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            case LARGEST_IMAG:
-            {
-                SortEigenvalue<Complex, LARGEST_IMAG> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            case SMALLEST_MAGN:
-            {
-                SortEigenvalue<Complex, SMALLEST_MAGN> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            case SMALLEST_REAL:
-            {
-                SortEigenvalue<Complex, SMALLEST_REAL> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            case SMALLEST_IMAG:
-            {
-                SortEigenvalue<Complex, SMALLEST_IMAG> sorting(m_ritz_val.data(), m_nev);
-                ind = sorting.index();
-            }
-                break;
-            default:
-                throw std::invalid_argument("unsupported sorting rule");
+        case LARGEST_MAGN:
+            break;
+        case LARGEST_REAL:
+        {
+            SortEigenvalue<Complex, LARGEST_REAL> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        case LARGEST_IMAG:
+        {
+            SortEigenvalue<Complex, LARGEST_IMAG> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        case SMALLEST_MAGN:
+        {
+            SortEigenvalue<Complex, SMALLEST_MAGN> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        case SMALLEST_REAL:
+        {
+            SortEigenvalue<Complex, SMALLEST_REAL> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        case SMALLEST_IMAG:
+        {
+            SortEigenvalue<Complex, SMALLEST_IMAG> sorting(m_ritz_val.data(), m_nev);
+            ind = sorting.index();
+        }
+        break;
+        default:
+            throw std::invalid_argument("unsupported sorting rule");
         }
 
         ComplexVector new_ritz_val(m_ncv);
@@ -431,9 +435,9 @@ public:
     ///
     MPI_GenEigsSolver(OpType* op, int nev, int ncv) :
         m_op(op),
-        
-		m_n(m_op->rows()),
-		
+
+        m_n(m_op->rows()),
+
         m_nev(nev),
         m_ncv(ncv > m_n ? m_n : ncv),
         m_nmatop(0),
@@ -468,11 +472,11 @@ public:
     {
         // Reset all matrices/vectors to zero
         m_fac_V.resize(m_n, m_ncv);
-        
-		m_fac_H.resize(m_ncv, m_ncv);
-        
-		m_fac_f.resize(m_n);
-		
+
+        m_fac_H.resize(m_ncv, m_ncv);
+
+        m_fac_f.resize(m_n);
+
         m_ritz_val.resize(m_ncv);
         m_ritz_vec.resize(m_ncv, m_nev);
         m_ritz_est.resize(m_ncv);
@@ -488,34 +492,34 @@ public:
 
         // Set the initial vector
         Vector v(m_n);
-        
-		std::copy(init_resid, init_resid + m_n, v.data());
-		
-		//call MPI
-		const Scalar vnorm = m_op->pnorm2(v);
 
-		if(vnorm < m_near_0)
+        std::copy(init_resid, init_resid + m_n, v.data());
+
+        //call MPI
+        const Scalar vnorm = m_op->pnorm2(v);
+
+        if(vnorm < m_near_0)
             throw std::invalid_argument("initial residual vector cannot be zero");
         v /= vnorm;
-		
+
         Vector w(m_n);
 
-		m_op->perform_op(v.data(), w.data());
+        m_op->perform_op(v.data(), w.data());
 
-		m_nmatop++;
+        m_nmatop++;
 
-		//call MPI
-		m_fac_H(0, 0) = m_op->pdot(v,w);
+        //call MPI
+        m_fac_H(0, 0) = m_op->pdot(v,w);
 
         m_fac_f.noalias() = w - v * m_fac_H(0, 0);
         m_fac_V.col(0).noalias() = v;
 
         // In some cases f is zero in exact arithmetics, but due to rounding errors
         // it may contain tiny fluctuations. When this happens, we force f to be zero
-		
-		//call MPI
-		if(m_op->pabsmax(m_fac_f)<m_eps)
-			m_fac_f.setZero();
+
+        //call MPI
+        if(m_op->pabsmax(m_fac_f)<m_eps)
+            m_fac_f.setZero();
 
     }
 
@@ -529,7 +533,7 @@ public:
     void init()
     {
         //SimpleRandom<Scalar> rng(0);
-		SimpleRandom<Scalar> rng(m_op->rank());
+        SimpleRandom<Scalar> rng(m_op->rank());
         Vector init_resid = rng.random_vec(m_n);
         init(init_resid.data());
     }
@@ -583,17 +587,23 @@ public:
     /// Returns the status of the computation.
     /// The full list of enumeration values can be found in \ref Enumerations.
     ///
-    int info() const { return m_info; }
+    int info() const {
+        return m_info;
+    }
 
     ///
     /// Returns the number of iterations used in the computation.
     ///
-    int num_iterations() const { return m_niter; }
+    int num_iterations() const {
+        return m_niter;
+    }
 
     ///
     /// Returns the number of matrix operations used in the computation.
     ///
-    int num_operations() const { return m_nmatop; }
+    int num_operations() const {
+        return m_nmatop;
+    }
 
     ///
     /// Returns the converged eigenvalues.
