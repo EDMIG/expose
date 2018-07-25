@@ -13,19 +13,19 @@ Eigen::MatrixXd V400x100(nglobal,mglobal);
 
 void init_GenEigsSolver()
 {
-  FILE *fp=fopen("../A400x400.bin","rb+");
-  assert(fp);
-  int N=nglobal*nglobal;
-  auto nread=fread(A400x400.data(),sizeof(double),N,fp);
-  assert(nread==N);
-  fclose(fp);
+    FILE *fp=fopen("../A400x400.bin","rb+");
+    assert(fp);
+    int N=nglobal*nglobal;
+    auto nread=fread(A400x400.data(),sizeof(double),N,fp);
+    assert(nread==N);
+    fclose(fp);
 
-  fp=fopen("../V400x100.bin","rb+");
-  assert(fp);
-  N=nglobal*mglobal;
-  nread = fread(V400x100.data(),sizeof(double),N,fp);
-  assert(nread==N);
-  fclose(fp);
+    fp=fopen("../V400x100.bin","rb+");
+    assert(fp);
+    N=nglobal*mglobal;
+    nread = fread(V400x100.data(),sizeof(double),N,fp);
+    assert(nread==N);
+    fclose(fp);
 }
 
 Eigen::MatrixXd Frank400x400(400,400);
@@ -36,10 +36,10 @@ void init_SymEigsSolver()
     int n=Frank400x400.rows();
     for(j=0; j<n; j++)
     {
-      for(i=0; i<n; i++)
-      {
-        Frank400x400(i,j)=n-std::max(i,j);
-      }
+        for(i=0; i<n; i++)
+        {
+            Frank400x400(i,j)=n-std::max(i,j);
+        }
     }
 }
 
@@ -60,7 +60,7 @@ int test_SymEigsSolver()
     MPI_MatProd<double> op(Frank400x400,comm);
 
     MPI_SymEigsSolver<double,LARGEST_MAGN, MPI_MatProd<double>>
-    eigs(&op,6,50);
+            eigs(&op,6,50);
 
     eigs.init();
 
@@ -70,12 +70,12 @@ int test_SymEigsSolver()
 
     if(rank==0)
     {
-      if(eigs.info()==SUCCESSFUL)
-      {
-        auto evalues=eigs.eigenvalues();
-        cout<<evalues<<endl;
-      }
-      cout<<"nconv="<<nconv<<endl;
+        if(eigs.info()==SUCCESSFUL)
+        {
+            auto evalues=eigs.eigenvalues();
+            cout<<evalues<<endl;
+        }
+        cout<<"nconv="<<nconv<<endl;
     }
 
     MPI::Finalize();
@@ -100,7 +100,7 @@ int test_GenEigsSolver()
     MPI_MatProd<double> op(A400x400,comm);
 
     MPI_GenEigsSolver<double,LARGEST_MAGN, MPI_MatProd<double>>
-    eigs(&op,6,50);
+            eigs(&op,6,50);
 
     eigs.init();
     int nconv=eigs.compute(100);
@@ -109,12 +109,12 @@ int test_GenEigsSolver()
 
     if(rank==0)
     {
-      if(eigs.info()==SUCCESSFUL)
-      {
-        auto evalues=eigs.eigenvalues();
-        cout<<evalues<<endl;
-      }
-      cout<<"nconv="<<nconv<<endl;
+        if(eigs.info()==SUCCESSFUL)
+        {
+            auto evalues=eigs.eigenvalues();
+            cout<<evalues<<endl;
+        }
+        cout<<"nconv="<<nconv<<endl;
     }
     MPI::Finalize();
 
@@ -122,7 +122,7 @@ int test_GenEigsSolver()
 
 int main()
 {
-  //test_GenEigsSolver();
+    //test_GenEigsSolver();
 
-  test_SymEigsSolver();
+    test_SymEigsSolver();
 }
